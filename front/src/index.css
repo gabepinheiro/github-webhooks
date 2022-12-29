@@ -1,0 +1,49 @@
+:root {
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+
+  padding: 0;
+  margin: 0;
+  border:0 ;
+  box-sizing: border-box;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+.btn-login-github {
+  background-color: #282828;
+  border: 1px solid #777;
+  border-radius: 4px;
+  padding: 8px 16px;
+  color: white;
+  cursor: pointer;
+
+  transition: 200ms;
+}
+
+.btn-login-github:hover {
+  background-color: #202020
+}
+
+.btn-login-github:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}

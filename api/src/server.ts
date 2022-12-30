@@ -14,6 +14,7 @@ import {
 } from '@octokit/webhooks'
 
 import { InMemoryDB } from './in-memory-db'
+import {Commit, Member, Organization, Repository} from './types'
 
 const inMemoryDB = new InMemoryDB()
 
@@ -38,24 +39,35 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
 
   inMemoryDB.token = token
 
-  const orgs = await octokit.request('GET /user/orgs{?since,per_page}', {})
+  const orgs = await octokit.request('GET /user/orgs')
 
-  inMemoryDB.orgs = orgs.data
+  inMemoryDB.orgs = orgs.data.map<Organization>(item => ({
+    id: item.id,
+    nodeId: item.node_id,
+    name: item.login,
+    url: item.url,
+    description: item.description,
+    avatarUrl: item.avatar_url,
+    membersUrl: item.members_url,
+    reposUrl: item.repos_url,
+  }))
 
-  await octokit.request('POST /orgs/{org}/hooks', {
-    org: orgs.data[0].login,
-    name: 'web',
-    active: true,
-    events: [
-      'push',
-      'pull_request'
-    ],
-    config: {
-      url: 'https://smee.io/wVAjhSoQzcEVpbep',
-      content_type: 'json',
-      secret: 'mysecret'
-    }
-  })
+  // await octokit.request('POST /orgs/{org}/hooks', {
+  //   org: orgs.data[0].login,
+  //   name: 'web',
+  //   active: true,
+  //   events: [
+  //     'push',
+  //     'pull_request',
+  //     'repository',
+  //     'member'
+  //   ],
+  //   config: {
+  //     url: 'https://smee.io/wVAjhSoQzcEVpbep',
+  //     content_type: 'json',
+  //     secret: 'mysecret'
+  //   }
+  // })
   
   // const hooks = await octokit.request('GET /orgs/{org}/hooks{?per_page,page}', {
   //    org: 'ORG'
@@ -69,7 +81,11 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
     org: org.data.login
   })
 
-  inMemoryDB.members = members.data 
+  inMemoryDB.members = members.data.map<Member>(item => ({
+    nodeId: item.node_id,
+    login: item.login,
+    avatarUrl: item.avatar_url,
+  }))
 
   const repos = await octokit.request('GET /orgs/{org}/repos', {
     org: org.data.login
@@ -80,20 +96,83 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
     repo: repos.data[0].name
   })
 
-  inMemoryDB.repos = repos.data
+  inMemoryDB.repos = repos.data.map<Repository>(item => ({
+    id: item.node_id,
+    name: item.name,
+    fullname: item.full_name,
+    url: item.html_url
+  }))
 
-  const commits = await octokit.request('GET /repos/{owner}/{repo}/commits{?sha}', {
+  const commits = await octokit.request('GET /repos/{owner}/{repo}/commits', {
     sha: branches.data[0].name,
     owner: repos.data[0].owner.login,
     repo: repos.data[0].name
   })
 
-  inMemoryDB.commits = commits.data
+  inMemoryDB.commits = commits.data.map<Commit>(item => ({
+    sha: item.sha,
+    url: item.html_url,
+    commit: {
+      message: item.commit.message,
+      author: {
+        name: item.commit.author?.name,
+        email: item.commit.author?.email,
+        date: item.commit.author?.date
+      },
+      committer: {
+        name: item.commit.committer?.name,
+        email: item.commit.committer?.email,
+        date: item.commit.committer?.date
+      }
+    }
+  }))
 });
 
-webhooks.on('push', (event) => {
-  console.log(event.payload.commits)
-  inMemoryDB.commits = event.payload.commits
+webhooks.on('push', event => {
+  console.log(event.payload)
+ 
+  const commits = event.payload.commits.map<Commit>(item => ({
+    sha: item.id,
+    url: item.url,
+    commit: {
+      message: item.message,
+      author: {
+        name: item.author?.name,
+        email: item.author?.email,
+        date: item.author?.date
+      },
+      committer: {
+        name: item.committer?.name,
+        email: item.committer?.email,
+        date: item.committer?.date
+      }
+    }
+  }))
+
+  inMemoryDB.createCommits(commits)
+})
+
+webhooks.on('repository.created', ({ payload }) => {
+  const repository: Repository = {
+    id: payload.repository.node_id,
+    name: payload.repository.name,
+    fullname: payload.repository.full_name,
+    url: payload.repository.html_url
+  }
+ 
+  inMemoryDB.createRepository(repository)
+})
+
+webhooks.on('repository.deleted', event => {
+
+})
+
+webhooks.on('member.added', event => {
+
+})
+
+webhooks.on('member.removed', event => {
+
 })
 
 app.get('/github/orgs', async (_, res) => {

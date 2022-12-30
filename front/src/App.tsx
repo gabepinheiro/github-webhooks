@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import GithubLogin from 'react-login-github'
 
 import { useProfile } from './hooks'
+import {Commit, Member, Organization, Repository} from './types'
 
 const CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID
 
@@ -48,7 +49,7 @@ export function App() {
       {resultOrgs.isLoading && <p>Buscando organizações...</p>}
       {resultOrgs.isSuccess && (
         <ul>
-          {resultOrgs.data.map(org => <li>{org.login}</li>)}
+          {resultOrgs.data.map(org => <li>{org.name}</li>)}
         </ul>
       )}
       
@@ -58,7 +59,7 @@ export function App() {
       {resultRepos.isLoading && <p>Buscando repositórios...</p>}
       {resultRepos.isSuccess && (
         <ul>
-          {resultRepos.data.map(repo => <li>{repo.full_name}</li>)}
+          {resultRepos.data.map(repo => <li>{repo.fullname}</li>)}
         </ul>
       )}
 
@@ -78,35 +79,35 @@ export function App() {
       {resultCommits.isLoading && <p>Buscando commits...</p>}
       {resultCommits.isSuccess && (
         <ul>
-          {resultCommits.data.map(item => <li>{item.commit ? item.commit.message : item.message}</li>)}
+          {resultCommits.data.map(item => <li>{item.commit.message}</li>)}
         </ul>
       )}
     </div>
   )
 }
 
-async function getOrgs () {
+async function getOrgs (): Promise<Organization[]> {
   const response  = await fetch('http://localhost:3000/github/orgs')
   const { orgs } = await response.json()
 
   return orgs
 }
 
-async function getRepos () {
+async function getRepos (): Promise<Repository[]> {
   const response  = await fetch('http://localhost:3000/github/repos')
   const { repos } = await response.json()
 
   return repos
 }
 
-async function getMembers () {
+async function getMembers (): Promise<Member[]> {
   const response  = await fetch('http://localhost:3000/github/members')
   const { members } = await response.json()
 
   return members
 }
 
-async function getCommits () {
+async function getCommits (): Promise<Commit[]> {
   const response  = await fetch('http://localhost:3000/github/commits')
   const { commits } = await response.json()
 

@@ -1,10 +1,12 @@
+import { Commit, Member, Organization, Repository } from "./types"
+
 export class InMemoryDB {
   private _token: string = ''
 
-  private _orgs: any[] = []
-  private _members: any[] = []
-  private _repos: any[] = []
-  private _commits: any[] = []
+  private _orgs: Organization[] = []
+  private _members: Member[] = []
+  private _repos: Repository[] = []
+  private _commits: Commit[] = []
 
   constructor() {}
 
@@ -28,6 +30,10 @@ export class InMemoryDB {
     return this._repos
   }
 
+  public createRepository (repository: Repository) {
+    this._repos = this._repos.concat(repository)
+  }
+
   set repos (data) {
     this._repos = this._repos.concat(data)
   }
@@ -46,6 +52,11 @@ export class InMemoryDB {
 
   get members () {
     return this._members
+  }
+
+  public createCommits(commits: Commit | Commit[]) {
+    this._commits = this._commits.concat(commits)
+    return commits
   }
 
   set commits (data) {

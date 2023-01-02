@@ -52,22 +52,23 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
     reposUrl: item.repos_url,
   }))
 
-  // await octokit.request('POST /orgs/{org}/hooks', {
-  //   org: orgs.data[0].login,
-  //   name: 'web',
-  //   active: true,
-  //   events: [
-  //     'push',
-  //     'pull_request',
-  //     'repository',
-  //     'member'
-  //   ],
-  //   config: {
-  //     url: 'https://smee.io/wVAjhSoQzcEVpbep',
-  //     content_type: 'json',
-  //     secret: 'mysecret'
-  //   }
-  // })
+  await octokit.request('POST /orgs/{org}/hooks', {
+    org: orgs.data[0].login,
+    name: 'web',
+    active: true,
+    events: [
+      'push',
+      'pull_request',
+      'repository',
+      'member',
+      'organization'
+    ],
+    config: {
+      url: 'https://smee.io/wVAjhSoQzcEVpbep',
+      content_type: 'json',
+      secret: 'mysecret'
+    }
+  })
   
   // const hooks = await octokit.request('GET /orgs/{org}/hooks{?per_page,page}', {
   //    org: 'ORG'
@@ -129,8 +130,6 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
 });
 
 webhooks.on('push', event => {
-  console.log(event.payload)
- 
   const commits = event.payload.commits.map<Commit>(item => ({
     sha: item.id,
     url: item.url,
@@ -164,15 +163,26 @@ webhooks.on('repository.created', ({ payload }) => {
 })
 
 webhooks.on('repository.deleted', event => {
-
+  const id = event.payload.repository.node_id
+  inMemoryDB.deleteRepository(id)
 })
 
-webhooks.on('member.added', event => {
+webhooks.on('organization.member_added', event => {
+  const memberResponse = event.payload.membership.user
 
+  const newMember: Member = {
+    nodeId: memberResponse.node_id,
+    avatarUrl: memberResponse.avatar_url,
+    login: memberResponse.login
+  }
+
+  inMemoryDB.createMembers(newMember)
 })
 
-webhooks.on('member.removed', event => {
+webhooks.on('organization.member_removed', event => {
+  const nodeId = event.payload.membership.user.node_id 
 
+  inMemoryDB.deleteMember(nodeId)
 })
 
 app.get('/github/orgs', async (_, res) => {

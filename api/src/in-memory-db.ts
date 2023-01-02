@@ -34,6 +34,10 @@ export class InMemoryDB {
     this._repos = this._repos.concat(repository)
   }
 
+  public deleteRepository(id: string) {
+    this._repos = this._repos.filter(repo => repo.id !== id)
+  }
+
   set repos (data) {
     this._repos = this._repos.concat(data)
   }
@@ -44,6 +48,14 @@ export class InMemoryDB {
 
   get orgs () {
     return this._orgs
+  }
+
+  public createMembers (members: Member | Member[]) {
+    this._members = this._members.concat(members)
+  }
+
+  public deleteMember (nodeId: string) {
+    this._members = this._members.filter(member => member.nodeId !== nodeId)
   }
 
   set members (data) {

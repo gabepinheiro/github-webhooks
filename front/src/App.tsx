@@ -28,7 +28,7 @@ export function App() {
         className='btn-login-github'
         clientId={CLIENT_ID}
         redirectUri='http://localhost:3001'
-        scope='user,admin:orgs,repo,admin:org_hook'
+        scope='user,admin:org,repo,admin:org_hook'
         onSuccess={handleSuccess}
         disabled={isLoading}
       />

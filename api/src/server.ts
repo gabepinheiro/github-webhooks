@@ -92,41 +92,82 @@ octokitOAuthApp.on("token", async ({ token, octokit }) => {
     org: org.data.login
   })
 
-  const branches = await octokit.request(`GET /repos/{owner}/{repo}/branches`, {
-    owner: repos.data[0].owner.login,
-    repo: repos.data[0].name
-  })
+  await Promise.all(repos.data.map(async repo => {
+    const branchs = await octokit.request(`GET /repos/{owner}/{repo}/branches`, {
+      owner: repo.owner.login,
+      repo: repo.name
+    })
+
+    const branchMain = branchs.data.find(branch => branch.name === 'main')
+
+    if(!branchMain) return;
+
+    const commitsBranchMain = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+      sha: branchMain.name,
+      owner: repo.owner.login,
+      repo: repo.name
+    })
+
+    const branchsOthers = branchs.data.filter(branch => branch.name !== 'main')
+
+    async function getCommits () {
+      for (const branch of branchsOthers) {
+        const commits = await octokit.request('GET /repos/{owner}/{repo}/commits', {
+          sha: branch.name,
+          owner: repo.owner.login,
+          repo: repo.name
+        })
+
+        const indexDiffCommitEnd = commits.data.findIndex(commit => commitsBranchMain.data.some(item => item.sha === commit.sha))
+        const commitsDiff = commits.data.slice(0, indexDiffCommitEnd)
+
+        inMemoryDB.commits = commitsDiff.map<Commit>(item => ({
+          sha: item.sha,
+          url: item.html_url,
+          commit: {
+            message: item.commit.message,
+            author: {
+              name: item.commit.author?.name,
+              email: item.commit.author?.email,
+              date: item.commit.author?.date
+            },
+            committer: {
+              name: item.commit.committer?.name,
+              email: item.commit.committer?.email,
+              date: item.commit.committer?.date
+            }
+          }
+        }))
+      }
+    }
+
+    await getCommits()
+
+    inMemoryDB.commits = commitsBranchMain.data.map<Commit>(item => ({
+      sha: item.sha,
+      url: item.html_url,
+      commit: {
+        message: item.commit.message,
+        author: {
+          name: item.commit.author?.name,
+          email: item.commit.author?.email,
+          date: item.commit.author?.date
+        },
+        committer: {
+          name: item.commit.committer?.name,
+          email: item.commit.committer?.email,
+          date: item.commit.committer?.date
+        }
+      }
+    }))
+  }))
 
   inMemoryDB.repos = repos.data.map<Repository>(item => ({
     id: item.node_id,
     name: item.name,
     fullname: item.full_name,
     url: item.html_url
-  }))
-
-  const commits = await octokit.request('GET /repos/{owner}/{repo}/commits', {
-    sha: branches.data[0].name,
-    owner: repos.data[0].owner.login,
-    repo: repos.data[0].name
-  })
-
-  inMemoryDB.commits = commits.data.map<Commit>(item => ({
-    sha: item.sha,
-    url: item.html_url,
-    commit: {
-      message: item.commit.message,
-      author: {
-        name: item.commit.author?.name,
-        email: item.commit.author?.email,
-        date: item.commit.author?.date
-      },
-      committer: {
-        name: item.commit.committer?.name,
-        email: item.commit.committer?.email,
-        date: item.commit.committer?.date
-      }
-    }
-  }))
+  })) 
 });
 
 webhooks.on('push', event => {
